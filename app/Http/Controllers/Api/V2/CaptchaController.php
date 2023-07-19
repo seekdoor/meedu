@@ -36,9 +36,9 @@ class CaptchaController extends BaseController
     protected $cacheService;
 
     public function __construct(
-        SmsServiceInterface $smsService,
+        SmsServiceInterface    $smsService,
         ConfigServiceInterface $configService,
-        CacheServiceInterface $cacheService
+        CacheServiceInterface  $cacheService
     ) {
         $this->smsService = $smsService;
         $this->configService = $configService;
@@ -48,6 +48,7 @@ class CaptchaController extends BaseController
     /**
      * @api {get} /api/v2/captcha/image 图形验证码
      * @apiGroup 其它
+     * @apiName CaptchaImage
      * @apiVersion v2.0.0
      *
      * @apiSuccess {Number} code 0成功,非0失败
@@ -55,8 +56,9 @@ class CaptchaController extends BaseController
      * @apiSuccess {String} data.key 随机键值
      * @apiSuccess {String} data.img 图片base64码
      */
-    public function imageCaptcha(Captcha $captcha)
+    public function imageCaptcha()
     {
+        $captcha = app()->make('captcha');
         $data = $captcha->create('default', true);
 
         return $this->data($data);
@@ -65,19 +67,23 @@ class CaptchaController extends BaseController
     /**
      * @api {post} /api/v2/captcha/sms 发送短信
      * @apiGroup 其它
+     * @apiName CaptchaSMS
      * @apiVersion v2.0.0
      *
      * @apiParam {String} mobile 手机号
      * @apiParam {String} image_captcha 图形验证码
      * @apiParam {String} image_key 图形验证码随机值
-     * @apiParam {String=login=登录,register=注册,password_reset=密码重置,mobile_bind=手机号绑定[换绑]} scene scene
+     * @apiParam {String=login,register,password_reset,mobile_bind} scene scene
      *
      * @apiSuccess {Number} code 0成功,非0失败
      * @apiSuccess {Object} data 数据
      */
     public function sentSms(SmsRequest $request)
     {
-        $this->checkImageCaptcha();
+        if (captcha_image_check() === false) {
+            return $this->error(__('图形验证码错误'));
+        }
+
         ['mobile' => $mobile, 'scene' => $scene] = $request->filldata();
         $code = str_pad(random_int(0, 999999), 6, 0, STR_PAD_LEFT);
 

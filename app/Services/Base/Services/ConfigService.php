@@ -30,12 +30,9 @@ class ConfigService implements ConfigServiceInterface
         return (int)config('meedu.member.credit1.watched_course');
     }
 
-    /**
-     * @return int
-     */
-    public function getPaidOrderSceneCredit1(): int
+    public function getPaidOrderSceneCredit1()
     {
-        return (int)config('meedu.member.credit1.paid_order');
+        return config('meedu.member.credit1.paid_order');
     }
 
     /**
@@ -44,14 +41,6 @@ class ConfigService implements ConfigServiceInterface
     public function getRegisterSceneCredit1(): int
     {
         return (int)config('meedu.member.credit1.register');
-    }
-
-    /**
-     * @return int
-     */
-    public function getInviteSceneCredit1(): int
-    {
-        return (int)config('meedu.member.credit1.invite');
     }
 
     /**
@@ -107,7 +96,7 @@ class ConfigService implements ConfigServiceInterface
      */
     public function getPlayerCover(): string
     {
-        return config('meedu.system.player_thumb', '');
+        return config('meedu.system.player_thumb') ?? '';
     }
 
     /**
@@ -148,7 +137,7 @@ class ConfigService implements ConfigServiceInterface
      */
     public function getMemberPrivateProtocol(): string
     {
-        return config('meedu.member.private_protocol', '');
+        return config('meedu.member.private_protocol') ?? '';
     }
 
     /**
@@ -157,7 +146,7 @@ class ConfigService implements ConfigServiceInterface
      */
     public function getAboutus(): string
     {
-        return config('meedu.aboutus', '');
+        return config('meedu.aboutus') ?? '';
     }
 
     /**
@@ -166,7 +155,7 @@ class ConfigService implements ConfigServiceInterface
      */
     public function getMemberDefaultAvatar(): string
     {
-        return config('meedu.member.default_avatar');
+        return config('meedu.member.default_avatar') ?? '';
     }
 
     /**
@@ -389,16 +378,6 @@ class ConfigService implements ConfigServiceInterface
     }
 
     /**
-     * 腾讯小程序配置
-     *
-     * @return array
-     */
-    public function getTencentWechatMiniConfig(): array
-    {
-        return config('tencent.wechat.mini');
-    }
-
-    /**
      * 阿里云私密播放状态
      *
      * @return bool
@@ -523,29 +502,71 @@ class ConfigService implements ConfigServiceInterface
         return config('app.url');
     }
 
+    // deprecated
     public function getTencentVodTranscodeFormat(): array
     {
         $format = strtolower(config('tencent.vod.transcode_format', ''));
         return $format ? explode(',', $format) : [];
     }
 
+    /**
+     * @return array
+     */
     public function getTencentSms(): array
     {
         return config('sms.gateways.tencent');
     }
 
+    /**
+     * @return string
+     */
     public function getPcUrl(): string
     {
         return config('meedu.system.pc_url');
     }
 
+    /**
+     * @return string
+     */
     public function getH5Url(): string
     {
         return config('meedu.system.h5_url');
     }
 
+    /**
+     * @return bool
+     */
     public function enabledFullSearch(): bool
     {
         return (bool)config('scout.meilisearch.host');
+    }
+
+    /**
+     * @return string
+     */
+    public function getTencentVodPlayKey(): string
+    {
+        return config('meedu.system.player.tencent_play_key', '') ?? '';
+    }
+
+    /**
+     * @return array
+     */
+    public function getPlayVideoFormatWhitelist(): array
+    {
+        $whitelist = config('meedu.system.player.video_format_whitelist') ?? '';
+        if (!$whitelist) {
+            return [];
+        }
+        return array_map('strtolower', explode(',', $whitelist));
+        ;
+    }
+
+    /**
+     * @return bool
+     */
+    public function enabledRedisCache(): bool
+    {
+        return config('cache.default') === 'redis';
     }
 }

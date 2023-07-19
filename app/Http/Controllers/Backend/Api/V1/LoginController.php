@@ -10,7 +10,7 @@ namespace App\Http\Controllers\Backend\Api\V1;
 
 use Carbon\Carbon;
 use App\Models\Administrator;
-use App\Models\AdministratorMenu;
+use App\Models\AdministratorLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\Backend\LoginRequest;
@@ -21,6 +21,10 @@ class LoginController extends BaseController
 
     public function login(LoginRequest $request)
     {
+        if (captcha_image_check() === false) {
+            return $this->error(__('图形验证码错误'));
+        }
+
         ['username' => $username, 'password' => $password] = $request->filldata();
 
         $admin = Administrator::query()->where('email', $username)->first();
@@ -44,6 +48,12 @@ class LoginController extends BaseController
         $admin->login_times++;
         $admin->save();
 
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_ADMIN_LOGIN,
+            AdministratorLog::OPT_LOGIN,
+            compact('username')
+        );
+
         return $this->successData(compact('token'));
     }
 
@@ -57,71 +67,18 @@ class LoginController extends BaseController
         return $this->successData($admin);
     }
 
-    public function menus()
+    public function logout()
     {
-        $menus = AdministratorMenu::query()
-            ->select(['id', 'parent_id', 'name as title', 'url as key', 'icon', 'permission', 'sort', 'is_super'])
-            ->where('parent_id', 0)
-            ->orderBy('sort')
-            ->get()
-            ->toArray();
-
-        $data = [];
-
         $admin = Auth::guard(self::GUARD)->user();
-        if (!$admin->isSuper()) {
-            // 非超级管理员，需要根据权限生成菜单
-            $permissions = $admin->permissions();
-            foreach ($menus as $menu) {
-                $children = AdministratorMenu::query()
-                    ->select(['id', 'parent_id', 'name as title', 'url as key', 'icon', 'permission', 'sort', 'is_super'])
-                    ->where('parent_id', $menu['id'])
-                    ->orderBy('sort')
-                    ->get()
-                    ->toArray();
 
-                if (!$children) {
-                    $data[] = $menu;
-                    continue;
-                }
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_ADMIN_LOGIN,
+            AdministratorLog::OPT_LOGOUT,
+            ['email' => $admin['email'], 'id' => $admin['id']]
+        );
 
-                $childrenData = [];
-                foreach ($children as $item) {
-                    if (($item['is_super'] ?? 0) === 1) {
-                        continue;
-                    }
-                    $per = $item['permission'] ?? '';
-                    if ($per === '' || isset($permissions[$per])) {
-                        $childrenData[] = $item;
-                        continue;
-                    }
-                }
+        Auth::guard(self::GUARD)->logout();
 
-                if (!$childrenData) {
-                    continue;
-                }
-
-                $menu['children'] = $childrenData;
-                $data[] = $menu;
-            }
-        } else {
-            // 超管返回全部菜单
-            foreach ($menus as $menu) {
-                $children = AdministratorMenu::query()
-                    ->select(['id', 'parent_id', 'name as title', 'url as key', 'icon', 'permission', 'sort', 'is_super'])
-                    ->where('parent_id', $menu['id'])
-                    ->orderBy('sort')
-                    ->get()
-                    ->toArray();
-                if ($children) {
-                    $menu['children'] = $children;
-                }
-                $data[] = $menu;
-            }
-        }
-
-        return $this->successData([
-            'menus' => $data,
-        ]);
+        return $this->success();
     }
 }

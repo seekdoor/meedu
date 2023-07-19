@@ -10,6 +10,11 @@ namespace App\Http\Controllers\Frontend;
 
 class IndexController extends FrontendController
 {
+    public function index()
+    {
+        return __('API服务正在运行');
+    }
+
     public function userProtocol()
     {
         $protocol = $this->configService->getMemberProtocol();
@@ -26,5 +31,10 @@ class IndexController extends FrontendController
     {
         $aboutus = $this->configService->getAboutus();
         return view('index.aboutus', compact('aboutus'));
+    }
+
+    public function faceVerifySuccess()
+    {
+        return view('index.face_verify_success');
     }
 }

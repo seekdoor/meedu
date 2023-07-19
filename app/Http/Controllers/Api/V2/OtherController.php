@@ -28,6 +28,7 @@ class OtherController extends BaseController
     /**
      * @api {get} /api/v2/other/config 系统配置
      * @apiGroup 其它
+     * @apiName OtherSystemConfig
      * @apiVersion v2.0.0
      *
      * @apiSuccess {Number} code 0成功,非0失败
@@ -44,8 +45,14 @@ class OtherController extends BaseController
      * @apiSuccess {Object} data.player 播放器
      * @apiSuccess {String} data.player.cover 播放器封面
      * @apiSuccess {Number} data.player.enabled_bullet_secret 开启跑马灯[1:是,0否]
+     * @apiSuccess {Object} data.player.bullet_secret 跑马灯配置
+     * @apiSuccess {String} data.player.bullet_secret.text 跑马灯-内容
+     * @apiSuccess {String} data.player.bullet_secret.color 跑马灯-颜色
+     * @apiSuccess {String} data.player.bullet_secret.opacity 跑马灯-透明度
+     * @apiSuccess {Number} data.player.bullet_secret.size 跑马灯—文字大小
      * @apiSuccess {Object} data.member
      * @apiSuccess {Number} data.member.enabled_mobile_bind_alert 强制绑定手机号[1:是,0否]
+     * @apiSuccess {Number} data.member.enabled_face_verify 强制实名认证[1:是,0否]
      * @apiSuccess {Number} data.socialites.qq QQ登录[1:是,0否]
      * @apiSuccess {Number} data.socialites.wechat_scan 微信扫码登录[1:是,0否]
      * @apiSuccess {Number} data.socialites.wechat_oauth 微信授权登录[1:是,0否]
@@ -59,8 +66,14 @@ class OtherController extends BaseController
     public function config(Addons $addons)
     {
         $playerConfig = $this->configService->getPlayer();
+        $bulletSecret = $playerConfig['bullet_secret'] ?? [];
 
         $enabledAddons = $addons->enabledAddons();
+
+        /**
+         * @var \App\Meedu\ServiceV2\Services\ConfigServiceInterface $configServiceV2
+         */
+        $configServiceV2 = app()->make(\App\Meedu\ServiceV2\Services\ConfigServiceInterface::class);
 
         $data = [
             // 网站名
@@ -89,10 +102,18 @@ class OtherController extends BaseController
                 'cover' => $this->configService->getPlayerCover(),
                 // 跑马灯
                 'enabled_bullet_secret' => $playerConfig['enabled_bullet_secret'] ?? 0,
+                'bullet_secret' => [
+                    'size' => $bulletSecret['size'] ?: 14,
+                    'color' => $bulletSecret['color'] ?: 'red',
+                    'opacity' => $bulletSecret['opacity'] ?: 1,
+                    'text' => $bulletSecret['text'] ?: '${mobile}',
+                ],
             ],
             'member' => [
                 // 强制绑定手机号
                 'enabled_mobile_bind_alert' => $this->configService->getEnabledMobileBindAlert(),
+                // 强制实名认证
+                'enabled_face_verify' => $configServiceV2->enabledFaceVerify(),
             ],
             // 社交登录
             'socialites' => [
@@ -110,8 +131,6 @@ class OtherController extends BaseController
                 'watched_video' => $this->configService->getWatchedVideoSceneCredit1(),
                 // 已支付订单[抽成]
                 'paid_order' => $this->configService->getPaidOrderSceneCredit1(),
-                // 邀请用户注册
-                'invite' => $this->configService->getInviteSceneCredit1(),
             ],
             // 已用插件
             'enabled_addons' => $enabledAddons,

@@ -19,7 +19,30 @@ class CourseCategoryService implements CourseCategoryServiceInterface
      */
     public function all(): array
     {
-        return CourseCategory::show()->sort()->get()->toArray();
+        $categories = CourseCategory::query()
+            ->select(['id', 'sort', 'name', 'parent_id'])
+            ->where('parent_id', 0)
+            ->orderBy('sort')
+            ->get()
+            ->toArray();
+
+        if (!$categories) {
+            return [];
+        }
+
+        $children = CourseCategory::query()
+            ->select(['id', 'sort', 'name', 'parent_id'])
+            ->whereIn('parent_id', array_column($categories, 'id'))
+            ->orderBy('sort')
+            ->get()
+            ->groupBy('parent_id')
+            ->toArray();
+
+        foreach ($categories as $key => $category) {
+            $categories[$key]['children'] = $children[$category['id']] ?? [];
+        }
+
+        return $categories;
     }
 
     /**
@@ -28,6 +51,6 @@ class CourseCategoryService implements CourseCategoryServiceInterface
      */
     public function findOrFail(int $id): array
     {
-        return CourseCategory::findOrFail($id)->toArray();
+        return CourseCategory::query()->where('id', $id)->firstOrFail()->toArray();
     }
 }

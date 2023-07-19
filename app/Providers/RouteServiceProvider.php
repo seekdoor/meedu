@@ -42,7 +42,8 @@ class RouteServiceProvider extends ServiceProvider
         $this->mapApiV3Routes();
         $this->mapApiRoutes();
         $this->mapWebRoutes();
-        $this->mapBackendApiRoutes();
+        $this->mapBackendApiV1Routes();
+        $this->mapBackendApiV2Routes();
     }
 
     /**
@@ -52,7 +53,7 @@ class RouteServiceProvider extends ServiceProvider
      */
     protected function mapWebRoutes()
     {
-        Route::middleware(['web', 'global.share'])
+        Route::middleware(['web'])
             ->namespace('App\Http\Controllers\Frontend')
             ->group(base_path('routes/web.php'));
     }
@@ -62,7 +63,7 @@ class RouteServiceProvider extends ServiceProvider
         Route::prefix('/api/v2')
             ->middleware('api')
             ->namespace($this->namespace . '\Api\V2')
-            ->group(base_path('routes/apiv2.php'));
+            ->group(base_path('routes/api-v2.php'));
     }
 
     protected function mapApiV3Routes()
@@ -70,7 +71,7 @@ class RouteServiceProvider extends ServiceProvider
         Route::prefix('/api/v3')
             ->middleware('api')
             ->namespace($this->namespace . '\Api\V3')
-            ->group(base_path('routes/apiv3.php'));
+            ->group(base_path('routes/api-v3.php'));
     }
 
     protected function mapApiRoutes()
@@ -81,11 +82,19 @@ class RouteServiceProvider extends ServiceProvider
             ->group(base_path('routes/api.php'));
     }
 
-    protected function mapBackendApiRoutes()
+    protected function mapBackendApiV1Routes()
     {
         Route::prefix('/backend/api/v1')
             ->middleware(['api'])
             ->namespace($this->namespace . '\Backend\Api\V1')
-            ->group(base_path('routes/backend-api.php'));
+            ->group(base_path('routes/backend-v1.php'));
+    }
+
+    protected function mapBackendApiV2Routes()
+    {
+        Route::prefix('/backend/api/v2')
+            ->middleware(['api'])
+            ->namespace($this->namespace . '\Backend\Api\V2')
+            ->group(base_path('routes/backend-v2.php'));
     }
 }

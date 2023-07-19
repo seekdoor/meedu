@@ -8,7 +8,6 @@
 
 namespace App\Http\Controllers\Api\V2;
 
-use Carbon\Carbon;
 use App\Meedu\Verify;
 use App\Meedu\Wechat;
 use App\Bus\WechatBindBus;
@@ -27,7 +26,6 @@ use App\Services\Course\Services\CourseService;
 use App\Services\Member\Services\CreditService;
 use App\Http\Requests\ApiV2\AvatarChangeRequest;
 use App\Http\Requests\ApiV2\MobileChangeRequest;
-use App\Services\Order\Services\PromoCodeService;
 use App\Http\Requests\ApiV2\NicknameChangeRequest;
 use App\Http\Requests\ApiV2\PasswordChangeRequest;
 use App\Services\Member\Services\SocialiteService;
@@ -35,14 +33,10 @@ use App\Services\Base\Interfaces\ConfigServiceInterface;
 use App\Services\Member\Interfaces\RoleServiceInterface;
 use App\Services\Member\Interfaces\UserServiceInterface;
 use App\Services\Order\Interfaces\OrderServiceInterface;
-use App\Http\Requests\ApiV2\InviteBalanceWithdrawRequest;
 use App\Services\Course\Interfaces\VideoServiceInterface;
 use App\Services\Course\Interfaces\CourseServiceInterface;
 use App\Services\Member\Interfaces\CreditServiceInterface;
-use App\Services\Member\Services\UserInviteBalanceService;
-use App\Services\Order\Interfaces\PromoCodeServiceInterface;
 use App\Services\Member\Interfaces\SocialiteServiceInterface;
-use App\Services\Member\Interfaces\UserInviteBalanceServiceInterface;
 
 class MemberController extends BaseController
 {
@@ -78,14 +72,14 @@ class MemberController extends BaseController
     protected $configService;
 
     public function __construct(
-        UserServiceInterface $userService,
-        CourseServiceInterface $courseService,
-        VideoServiceInterface $videoService,
-        RoleServiceInterface $roleService,
-        OrderServiceInterface $orderService,
+        UserServiceInterface      $userService,
+        CourseServiceInterface    $courseService,
+        VideoServiceInterface     $videoService,
+        RoleServiceInterface      $roleService,
+        OrderServiceInterface     $orderService,
         SocialiteServiceInterface $socialiteService,
-        BusinessState $businessState,
-        ConfigServiceInterface $configService
+        BusinessState             $businessState,
+        ConfigServiceInterface    $configService
     ) {
         $this->userService = $userService;
         $this->courseService = $courseService;
@@ -100,8 +94,9 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/detail 用户详情
      * @apiGroup 用户
+     * @apiName MemberDetail
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiSuccess {Number} code 0成功,非0失败
      * @apiSuccess {Object} data 数据
@@ -126,13 +121,18 @@ class MemberController extends BaseController
      * @apiSuccess {Number} data.is_bind_wechat 是否绑定微信[1:是,0:否]
      * @apiSuccess {Number} data.is_bind_mobile 是否绑定手机号[1:是,0:否]
      * @apiSuccess {Number} data.invite_people_count 邀请人数
+     * @apiSuccess {Boolean} data.is_face_verify 是否完成实名认证
+     * @apiSuccess {Boolean} data.profile_real_name 真实姓名
+     * @apiSuccess {Boolean} data.profile_id_number 身份证号
      */
     public function detail(BusinessState $businessState, SocialiteServiceInterface $socialiteService)
     {
         /**
          * @var SocialiteService $socialiteService
          */
-        $user = $this->userService->find($this->id(), ['role']);
+        $user = $this->userService->find($this->id(), ['role:id,name', 'profile:user_id,real_name,id_number,is_verify']);
+        $userProfile = $user['profile'] ?? [];
+        // user信息返回字段过滤
         $user = arr1_clear($user, ApiV2Constant::MODEL_MEMBER_FIELD);
 
         $socialites = $socialiteService->userSocialites($this->id());
@@ -148,14 +148,25 @@ class MemberController extends BaseController
         // 邀请人数
         $user['invite_people_count'] = $this->userService->inviteCount($this->id());
 
+        // 是否实名认证
+        $user['is_face_verify'] = false;
+        $user['profile_real_name'] = '';
+        $user['profile_id_number'] = '';
+        if ($userProfile) {
+            $user['is_face_verify'] = $userProfile['is_verify'] === 1;
+            $user['profile_real_name'] = name_mask($userProfile['real_name']);
+            $user['profile_id_number'] = id_mask($userProfile['id_number']);
+        }
+
         return $this->data($user);
     }
 
     /**
      * @api {post} /api/v2/member/detail/password 修改密码
      * @apiGroup 用户
+     * @apiName MemberPasswordChange
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {String} mobile 手机号
      * @apiParam {String} mobile_code 短信验证码
@@ -169,8 +180,8 @@ class MemberController extends BaseController
         $this->mobileCodeCheck();
         ['password' => $password, 'mobile' => $mobile] = $request->filldata();
         $user = $this->userService->find($this->id());
-        if ($user['mobile'] != $mobile) {
-            return $this->error(__('短信验证码错误'));
+        if ($user['mobile'] !== $mobile) {
+            return $this->error(__('请绑定手机号'));
         }
         $this->userService->changePassword($this->id(), $password);
 
@@ -180,8 +191,9 @@ class MemberController extends BaseController
     /**
      * @api {post} /api/v2/member/detail/mobile 手机号绑定
      * @apiGroup 用户
+     * @apiName MemberMobileBind
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {String} mobile 手机号
      * @apiParam {String} mobile_code 短信验证码
@@ -206,8 +218,9 @@ class MemberController extends BaseController
     /**
      * @api {put} /api/v2/member/mobile 手机号更换
      * @apiGroup 用户
+     * @apiName MemberMobileChange
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {String} mobile 手机号
      * @apiParam {String} mobile_code 短信验证码
@@ -234,8 +247,9 @@ class MemberController extends BaseController
     /**
      * @api {post} /api/v2/member/detail/nickname 修改昵称
      * @apiGroup 用户
+     * @apiName MemberNicknameChange
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {String} nick_name 新昵称
      *
@@ -252,8 +266,9 @@ class MemberController extends BaseController
     /**
      * @api {post} /api/v2/member/detail/avatar 修改头像
      * @apiGroup 用户
+     * @apiName MemberAvatarChange
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {File} file 头像文件
      *
@@ -271,8 +286,9 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/roles VIP订购记录
      * @apiGroup 用户
+     * @apiName MemberRoles
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {Number} [page] page
      * @apiParam {Number} [page_size] size
@@ -304,8 +320,9 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/messages 站内消息
      * @apiGroup 用户
+     * @apiName MemberMessages
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {Number} [page] page
      * @apiParam {Number} [page_size] size
@@ -337,8 +354,9 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/courses 已购录播课程
      * @apiGroup 用户
+     * @apiName MemberCoursesV2
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {Number} [page] page
      * @apiParam {Number} [page_size] size
@@ -387,8 +405,9 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/courses/like 已收藏录播课程
      * @apiGroup 用户
+     * @apiName MemberCoursesLikeV2
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {Number} [page] page
      * @apiParam {Number} [page_size] size
@@ -437,8 +456,9 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/courses/history 已学习录播课程
      * @apiGroup 用户
+     * @apiName MemberCoursesHistory
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {Number} [page] page
      * @apiParam {Number} [page_size] size
@@ -487,8 +507,9 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/videos 已购视频
      * @apiGroup 用户
+     * @apiName MemberVideos
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {Number} [page] page
      * @apiParam {Number} [page_size] size
@@ -535,8 +556,9 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/orders 订单列表
      * @apiGroup 用户
+     * @apiName MemberOrders
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {Number} [page] page
      * @apiParam {Number} [page_size] size
@@ -567,12 +589,13 @@ class MemberController extends BaseController
      */
     public function orders(Request $request)
     {
-        $page = $request->input('page', 1);
-        $pageSize = $request->input('page_size', 5);
+        $page = (int)$request->input('page', 1);
+        $pageSize = (int)$request->input('page_size', 10);
+
         [
             'total' => $total,
             'list' => $list,
-        ] = $this->orderService->userOrdersPaginate($page, $pageSize);
+        ] = $this->orderService->userOrdersPaginate($this->id(), $page, $pageSize);
         $list = arr2_clear($list, ApiV2Constant::MODEL_ORDER_FIELD);
 
         foreach ($list as $key => $val) {
@@ -584,79 +607,11 @@ class MemberController extends BaseController
     }
 
     /**
-     * @api {get} /api/v2/member/inviteBalanceRecords 邀请余额明细
-     * @apiGroup 用户
-     * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
-     *
-     * @apiParam {Number} [page] page
-     * @apiParam {Number} [page_size] size
-     *
-     * @apiSuccess {Number} code 0成功,非0失败
-     * @apiSuccess {Object} data
-     * @apiSuccess {Number} data.total 总数
-     * @apiSuccess {Object[]} data.data
-     * @apiSuccess {Number} data.data.id 明细ID
-     * @apiSuccess {Number} data.data.user_id 用户ID
-     * @apiSuccess {Number} data.data.type 类型[0:支出,1:订单抽成奖励,2:提现,3:提现退还]
-     * @apiSuccess {Number} data.data.total 变动金额
-     * @apiSuccess {String} data.data.desc 变动描述
-     */
-    public function inviteBalanceRecords(Request $request, UserInviteBalanceServiceInterface $userInviteBalanceService)
-    {
-        /**
-         * @var UserInviteBalanceService $userInviteBalanceService
-         */
-
-        $page = $request->input('page', 1);
-        $pageSize = $request->input('page_size', 5);
-        [
-            'total' => $total,
-            'list' => $list,
-        ] = $userInviteBalanceService->simplePaginate($page, $pageSize);
-        $records = $this->paginator($list, $total, $page, $pageSize);
-
-        return $this->data($records);
-    }
-
-    /**
-     * @api {get} /api/v2/member/promoCode 邀请码
-     * @apiGroup 用户
-     * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
-     *
-     * @apiSuccess {Number} code 0成功,非0失败
-     * @apiSuccess {Object} data
-     * @apiSuccess {Number} data.per_order_draw 订单抽成
-     * @apiSuccess {Number} data.invited_user_reward 被邀请用户奖励
-     * @apiSuccess {Number} data.invite_user_reward 邀请奖励
-     * @apiSuccess {String} data.code 邀请码
-     * @apiSuccess {String} data.expired_at 过期时间
-     */
-    public function promoCode(PromoCodeServiceInterface $promoCodeService)
-    {
-        /**
-         * @var PromoCodeService $promoCodeService
-         */
-
-        $promoCode = $promoCodeService->getUserPromoCode($this->id());
-        if (!$promoCode && $this->businessState->canGenerateInviteCode($this->user())) {
-            // 如果可以生成邀请码的话则直接创建邀请码
-            $promoCodeService->userCreate($this->user());
-            $promoCode = $promoCodeService->userPromoCode($this->id());
-        }
-
-        $promoCode = arr1_clear($promoCode, ApiV2Constant::MODEL_PROMO_CODE_FIELD);
-        $promoCode['per_order_draw'] = $this->configService->getMemberInviteConfig()['per_order_draw'];
-
-        return $this->data($promoCode);
-    }
-
-    /**
      * @api {get} /api/v2/member/notificationMarkAsRead/{notificationId} 消息标记已读
      * @apiGroup 用户
+     * @apiName MemberMessageMarkReadAction
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiSuccess {Number} code 0成功,非0失败
      * @apiSuccess {Object} data
@@ -670,8 +625,9 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/unreadNotificationCount 未读消息数量
      * @apiGroup 用户
+     * @apiName MemberUnreadMessageCount
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiSuccess {Number} code 0成功,非0失败
      * @apiSuccess {Number} data 未读消息数量
@@ -685,8 +641,9 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/notificationMarkAllAsRead 消息全部标记已读
      * @apiGroup 用户
+     * @apiName MemberMarkAllMessages
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiSuccess {Number} code 0成功,非0失败
      * @apiSuccess {Object} data
@@ -698,131 +655,11 @@ class MemberController extends BaseController
     }
 
     /**
-     * @api {get} /api/v2/member/inviteUsers 已邀请用户
-     * @apiGroup 用户
-     * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
-     *
-     * @apiParam {Number} [page] page
-     * @apiParam {Number} [page_size] size
-     *
-     * @apiSuccess {Number} code 0成功,非0失败
-     * @apiSuccess {Object} data
-     * @apiSuccess {Number} data.total 总数
-     * @apiSuccess {Object[]} data.data
-     * @apiSuccess {String} data.data.mobile 邀请用户手机号
-     * @apiSuccess {String} data.data.created_at 邀请时间
-     */
-    public function inviteUsers(Request $request)
-    {
-        $page = $request->input('page', 1);
-        $pageSize = $request->input('page_size', 10);
-
-        [
-            'list' => $list,
-            'total' => $total,
-        ] = $this->userService->inviteUsers($page, $pageSize);
-
-        $list = array_map(function ($item) {
-            $mobile = '******' . mb_substr($item['mobile'], 6);
-            return [
-                'mobile' => $mobile,
-                'created_at' => Carbon::parse($item['created_at'])->format('Y-m-d'),
-            ];
-        }, $list);
-
-        return $this->data([
-            'total' => $total,
-            'data' => $list,
-        ]);
-    }
-
-    /**
-     * @api {get} /api/v2/member/withdrawRecords 邀请余额提现记录
-     * @apiGroup 用户
-     * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
-     *
-     * @apiParam {Number} [page] page
-     * @apiParam {Number} [page_size] size
-     *
-     * @apiSuccess {Number} code 0成功,非0失败
-     * @apiSuccess {Object} data
-     * @apiSuccess {Number} data.total 总数
-     * @apiSuccess {Object[]} data.data
-     * @apiSuccess {Number} data.data.id 记录ID
-     * @apiSuccess {Number} data.data.total 提现金额
-     * @apiSuccess {Number} data.data.before_balance 提现前余额
-     * @apiSuccess {Number} data.data.status 记录状态[0:已提交,1:成功,2:失败]
-     * @apiSuccess {String} data.data.channel 打款渠道
-     * @apiSuccess {String} data.data.channel_name 打款渠道-姓名
-     * @apiSuccess {String} data.data.channel_account 打款渠道-账户
-     * @apiSuccess {String} data.data.channel_address 打款渠道-地址
-     * @apiSuccess {String} data.data.remark 打款渠道-备注
-     * @apiSuccess {String} data.data.created_at 打款渠道-时间
-     */
-    public function withdrawRecords(Request $request, UserInviteBalanceServiceInterface $userInviteBalanceService)
-    {
-        /**
-         * @var UserInviteBalanceService $userInviteBalanceService
-         */
-
-        $page = $request->input('page', 1);
-        $pageSize = $request->input('page_size', 10);
-
-        [
-            'list' => $list,
-            'total' => $total,
-        ] = $userInviteBalanceService->currentUserOrderPaginate($page, $pageSize);
-
-        return $this->data([
-            'total' => $total,
-            'data' => $list,
-        ]);
-    }
-
-    /**
-     * @api {post} /api/v2/member/withdraw 邀请余额提现
-     * @apiGroup 用户
-     * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
-     *
-     * @apiParam {String} channel 打款渠道
-     * @apiParam {String} channel_name 打款渠道-姓名
-     * @apiParam {String} channel_account 打款渠道-账户
-     * @apiParam {String} [channel_address] 打款渠道-地址
-     * @apiParam {Number} total 提现金额
-     *
-     * @apiSuccess {Number} code 0成功,非0失败
-     * @apiSuccess {Object} data
-     * @apiSuccess {Number} data.total 总数
-     * @apiSuccess {Object[]} data.data
-     * @apiSuccess {Number} data.data.id 记录ID
-     * @apiSuccess {Number} data.data.total 提现金额
-     * @apiSuccess {Number} data.data.before_balance 提现前余额
-     * @apiSuccess {Number} data.data.status 记录状态[0:已提交,1:成功,2:失败]
-     * @apiSuccess {String} data.data.channel 打款渠道
-     * @apiSuccess {String} data.data.channel_name 打款渠道-姓名
-     * @apiSuccess {String} data.data.channel_account 打款渠道-账户
-     * @apiSuccess {String} data.data.channel_address 打款渠道-地址
-     * @apiSuccess {String} data.data.remark 打款渠道-备注
-     * @apiSuccess {String} data.data.created_at 打款渠道-时间
-     */
-    public function createWithdraw(InviteBalanceWithdrawRequest $request, UserInviteBalanceServiceInterface $userInviteBalanceService)
-    {
-        /**
-         * @var UserInviteBalanceService $userInviteBalanceService
-         */
-        $data = $request->filldata();
-        $userInviteBalanceService->createCurrentUserWithdraw($data['total'], $data['channel']);
-        return $this->success();
-    }
-
-    /**
      * @api {get} /api/v2/member/credit1Records 积分明细
      * @apiGroup 用户
+     * @apiName MemberCredit1Records
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {Number} [page] page
      * @apiParam {Number} [page_size] size
@@ -857,70 +694,11 @@ class MemberController extends BaseController
     }
 
     /**
-     * @api {get} /api/v2/member/profile 我的资料
-     * @apiGroup 用户
-     * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
-     *
-     * @apiParam {Number} [page] page
-     * @apiParam {Number} [page_size] size
-     *
-     * @apiSuccess {Number} code 0成功,非0失败
-     * @apiSuccess {Object} data
-     * @apiSuccess {String} data.real_name 真实姓名
-     * @apiSuccess {String} data.gender 性别[1:男,2:女,0:未公开]
-     * @apiSuccess {String} data.age 年龄
-     * @apiSuccess {String} data.birthday 生日
-     * @apiSuccess {String} data.profession 职业
-     * @apiSuccess {String} data.address 住址
-     * @apiSuccess {String} data.graduated_school 毕业院校
-     * @apiSuccess {String} data.diploma 毕业证照片
-     * @apiSuccess {String} data.id_number 身份证号
-     * @apiSuccess {String} data.id_frontend_thumb 身份证人像面
-     * @apiSuccess {String} data.id_backend_thumb 身份证国徽面
-     * @apiSuccess {String} data.id_hand_thumb 手持身份证照片
-     */
-    public function profile()
-    {
-        $profile = $this->userService->getProfile($this->id());
-        $profile = arr1_clear($profile, ApiV2Constant::MODEL_MEMBER_PROFILE_FIELD);
-        return $this->data($profile);
-    }
-
-    /**
-     * @api {post} /api/v2/member/profile 资料编辑
-     * @apiGroup 用户
-     * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
-     *
-     * @apiParam {String} [real_name] 真实姓名
-     * @apiParam {String} [gender] 性别[1:男,2:女,0:未公开]
-     * @apiParam {String} [age] 年龄
-     * @apiParam {String} [birthday] 生日
-     * @apiParam {String} [profession] 职业
-     * @apiParam {String} [address] 住址
-     * @apiParam {String} [graduated_school] 毕业院校
-     * @apiParam {String} [diploma] 毕业证照片
-     * @apiParam {String} [id_number] 身份证号
-     * @apiParam {String} [id_frontend_thumb] 身份证人像面
-     * @apiParam {String} [id_backend_thumb] 身份证国徽面
-     * @apiParam {String} [id_hand_thumb] 手持身份证照片
-     *
-     * @apiSuccess {Number} code 0成功,非0失败
-     * @apiSuccess {Object} data
-     */
-    public function profileUpdate(Request $request)
-    {
-        $data = $request->all();
-        $this->userService->saveProfile($this->id(), $data);
-        return $this->success();
-    }
-
-    /**
      * @api {post} /api/v2/member/verify 校验
      * @apiGroup 用户
+     * @apiName MemberVerify
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiParam {String} mobile 手机号
      * @apiParam {String} mobile_code 短信验证码
@@ -943,8 +721,9 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/wechatScan/bind 微信扫码绑定[二维码]
      * @apiGroup 用户
+     * @apiName MemberWechatBind
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      *
      * @apiSuccess {Number} code 0成功,非0失败
      * @apiSuccess {Object} data 数据
@@ -963,8 +742,9 @@ class MemberController extends BaseController
     /**
      * @api {delete} /api/v2/member/socialite/{app} 社交登录解绑
      * @apiGroup 用户
+     * @apiName MemberSocialiteUnbind
      * @apiVersion v2.0.0
-     * @apiHeader Authorization Bearer+token
+     * @apiHeader Authorization Bearer+空格+token
      * @apiDescription app={qq:QQ登录,wechat:微信}
      *
      * @apiSuccess {Number} code 0成功,非0失败
@@ -987,8 +767,8 @@ class MemberController extends BaseController
 
     public function socialiteBindCallback(
         SocialiteServiceInterface $socialiteService,
-        BusinessState $businessState,
-        Request $request,
+        BusinessState             $businessState,
+        Request                   $request,
         $app
     ) {
         /**
@@ -1027,6 +807,7 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/socialite/{app} 社交账号绑定[302重定向]
      * @apiGroup 用户
+     * @apiName MemberSocialiteBind
      * @apiVersion v2.0.0
      * @apiDescription app={qq:QQ登录}
      *
@@ -1072,6 +853,7 @@ class MemberController extends BaseController
     /**
      * @api {get} /api/v2/member/wechatBind 微信公众号授权绑定[302重定向]
      * @apiGroup 用户
+     * @apiName MemberWechatBind
      * @apiVersion v2.0.0
      *
      * @apiParam {String} token 登录token

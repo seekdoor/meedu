@@ -10,13 +10,14 @@ namespace App\Http\Controllers\Api\V2;
 
 use App\Bus\AuthBus;
 use App\Meedu\Wechat;
-use App\Meedu\WechatMini;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Constant\CacheConstant;
+use App\Events\UserLogoutEvent;
 use App\Businesses\BusinessState;
 use App\Constant\FrontendConstant;
 use App\Exceptions\ServiceException;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 use App\Services\Base\Services\CacheService;
 use App\Services\Base\Services\ConfigService;
@@ -59,9 +60,9 @@ class LoginController extends BaseController
      * @param SocialiteServiceInterface $socialiteService
      */
     public function __construct(
-        UserServiceInterface $userService,
-        ConfigServiceInterface $configService,
-        CacheServiceInterface $cacheService,
+        UserServiceInterface      $userService,
+        ConfigServiceInterface    $configService,
+        CacheServiceInterface     $cacheService,
         SocialiteServiceInterface $socialiteService
     ) {
         $this->userService = $userService;
@@ -73,6 +74,7 @@ class LoginController extends BaseController
     /**
      * @api {post} /api/v2/login/password 密码登录
      * @apiGroup Auth
+     * @apiName LoginPassword
      * @apiVersion v2.0.0
      *
      * @apiParam {String} mobile 手机号
@@ -105,6 +107,7 @@ class LoginController extends BaseController
     /**
      * @api {post} /api/v2/login/mobile 短信登录
      * @apiGroup Auth
+     * @apiName LoginMobile
      * @apiVersion v2.0.0
      *
      * @apiParam {String} mobile 手机号
@@ -136,141 +139,6 @@ class LoginController extends BaseController
     }
 
     /**
-     * @api {post} /api/v2/login/wechatMiniMobile 微信小程序手机号登录
-     * @apiGroup Auth
-     * @apiVersion v2.0.0
-     *
-     * @apiParam {String} openid openid
-     * @apiParam {String} iv iv
-     * @apiParam {String} encryptedData encryptedData
-     *
-     * @apiSuccess {Number} code 0成功,非0失败
-     * @apiSuccess {Object} data 数据
-     * @apiSuccess {String} data.token token
-     */
-    public function wechatMiniMobile(Request $request, AuthBus $authBus)
-    {
-        $openid = $request->input('openid');
-        $encryptedData = $request->input('encryptedData');
-        $iv = $request->input('iv');
-        $userInfo = $request->input('userInfo');
-
-        if (
-            !$openid || !$encryptedData || !$iv ||
-            !$userInfo ||
-            !($userInfo['encryptedData'] ?? '') ||
-            !($userInfo['iv'] ?? '') ||
-            !($userInfo['rawData'] ?? '') ||
-            !($userInfo['signature'] ?? '')
-        ) {
-            return $this->error(__('错误'));
-        }
-
-        $sessionKey = $this->cacheService->get(get_cache_key(CacheConstant::WECHAT_MINI_SESSION_KEY['name'], $openid));
-        if (!$sessionKey) {
-            return $this->error(__('错误'));
-        }
-
-        // 校验签名
-        if (sha1($userInfo['rawData'] . $sessionKey) !== $userInfo['signature']) {
-            return $this->error(__('参数错误'));
-        }
-
-        $mini = WechatMini::getInstance();
-
-        // 解密获取手机号
-        $data = $mini->encryptor->decryptData($sessionKey, $iv, $encryptedData);
-        $mobile = $data['phoneNumber'];
-        // 解密获取用户信息
-        $userData = $mini->encryptor->decryptData($sessionKey, $userInfo['iv'], $userInfo['encryptedData']);
-
-        if ($openid !== $userData['openId']) {
-            return $this->error(__('错误'));
-        }
-
-        // unionId
-        $unionId = $userData['unionId'] ?? '';
-
-        $user = $authBus->wechatMiniMobileLogin($openid, $unionId, $mobile, $userData);
-
-        try {
-            $token = $this->token($user);
-
-            return $this->data(compact('token'));
-        } catch (ServiceException $e) {
-            return $this->error($e->getMessage());
-        }
-    }
-
-    /**
-     * @api {post} /api/v2/login/wechatMini 微信小程序静默授权登录
-     * @apiGroup Auth
-     * @apiVersion v2.0.0
-     *
-     * @apiParam {String} openid openid
-     * @apiParam {String} iv iv
-     * @apiParam {String} encryptedData encryptedData
-     * @apiParam {String} rawData rawData
-     * @apiParam {String} signature signature
-     *
-     * @apiSuccess {Number} code 0成功,非0失败
-     * @apiSuccess {Object} data 数据
-     * @apiSuccess {String} data.token token
-     */
-    public function wechatMini(Request $request, AuthBus $authBus)
-    {
-        $openid = $request->input('openid');
-        $raw = $request->input('rawData');
-        $signature = $request->input('signature');
-        $encryptedData = $request->input('encryptedData');
-        $iv = $request->input('iv');
-
-        if (
-            !$openid ||
-            !$raw ||
-            !$signature ||
-            !$encryptedData ||
-            !$iv
-        ) {
-            return $this->error(__('错误'));
-        }
-
-        $sessionKey = $this->cacheService->get(get_cache_key(CacheConstant::WECHAT_MINI_SESSION_KEY['name'], $openid));
-        if (!$sessionKey) {
-            return $this->error(__('错误'));
-        }
-
-        // 验签
-        if (sha1($raw . $sessionKey) !== $signature) {
-            return $this->error(__('错误'));
-        }
-
-        // 解密获取用户信息
-        $userData = WechatMini::getInstance()->encryptor->decryptData($sessionKey, $iv, $encryptedData);
-
-        if ($openid !== $userData['openId']) {
-            return $this->error(__('错误'));
-        }
-
-        // unionId
-        $unionId = $userData['unionId'] ?? '';
-
-        $userId = $authBus->wechatMiniLogin($openid, $unionId);
-        if (!$userId) {
-            return $this->error(__('错误'));
-        }
-
-        $user = $this->userService->find($userId);
-        try {
-            $token = $this->token($user);
-
-            return $this->data(compact('token'));
-        } catch (ServiceException $e) {
-            return $this->error($e->getMessage());
-        }
-    }
-
-    /**
      * @param $user
      * @return mixed
      * @throws ServiceException
@@ -292,6 +160,7 @@ class LoginController extends BaseController
     /**
      * @api {get} /api/v2/login/wechat/oauth 微信公众号授权登录[重定向]
      * @apiGroup Auth
+     * @apiName WechatOauth
      * @apiVersion v2.0.0
      * @apiDescription 登录成功之后会在success_redirect中携带token返回
      *
@@ -349,6 +218,7 @@ class LoginController extends BaseController
     /**
      * @api {get} /api/v2/login/socialite/{app} 社交APP登录[重定向]
      * @apiGroup Auth
+     * @apiName LoginSocialites
      * @apiVersion v2.0.0
      * @apiDescription app可选值:[qq]. 登录成功之后会在success_redirect中携带token返回
      *
@@ -423,6 +293,7 @@ class LoginController extends BaseController
     /**
      * @api {get} /api/v2/login/wechatScan 微信扫码登录[二维码]
      * @apiGroup Auth
+     * @apiName LoginWechatScan
      * @apiVersion v2.0.0
      *
      * @apiSuccess {Number} code 0成功,非0失败
@@ -449,6 +320,7 @@ class LoginController extends BaseController
     /**
      * @api {get} /api/v2/login/wechatScan/query 微信扫码登录[结果查询]
      * @apiGroup Auth
+     * @apiName LoginWechatScanQuery
      * @apiVersion v2.0.0
      *
      * @apiParam {String} code 随机值
@@ -486,37 +358,21 @@ class LoginController extends BaseController
     }
 
     /**
-     * @api {post} /api/v2/login/wechatMini/session 微信小程序session记录
+     * @api {post} /api/v2/logout 安全退出
      * @apiGroup Auth
+     * @apiName LoginLogout
      * @apiVersion v2.0.0
      *
-     * @apiParam {String} code 随机值
-     *
      * @apiSuccess {Number} code 0成功,非0失败
-     * @apiSuccess {Object} data 数据
-     * @apiSuccess {String} data.openid 当前微信小程序用户openid
      */
-    public function wechatMiniSession(Request $request)
+    public function logout(Request $request)
     {
-        $code = $request->input('code');
-        if (!$code) {
-            return $this->error(__('参数错误'));
-        }
-        $info = WechatMini::getInstance()->auth->session($code);
-        if (!isset($info['openid'])) {
-            return $this->error(__('错误'));
-        }
-        $openid = $info['openid'];
+        $userId = Auth::guard(FrontendConstant::API_GUARD)->id();
+        $token = explode(' ', $request->header('Authorization'))[1];
+        event(new UserLogoutEvent($userId, $token));
 
-        // session_key存入缓存
-        $this->cacheService->put(
-            get_cache_key(CacheConstant::WECHAT_MINI_SESSION_KEY['name'], $openid),
-            $info['session_key'],
-            CacheConstant::WECHAT_MINI_SESSION_KEY['expire']
-        );
+        Auth::guard(FrontendConstant::API_GUARD)->logout();
 
-        return $this->data([
-            'openid' => $openid,
-        ]);
+        return $this->success();
     }
 }

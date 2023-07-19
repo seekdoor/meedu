@@ -9,7 +9,9 @@
 namespace App\Http\Controllers\Backend\Api\V1;
 
 use Carbon\Carbon;
+use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
+use App\Models\AdministratorLog;
 use Illuminate\Support\Facades\DB;
 use App\Events\VodVideoCreatedEvent;
 use App\Services\Member\Models\User;
@@ -51,6 +53,12 @@ class CourseVideoController extends BaseController
             ->orderBy($sort, $order)
             ->paginate($request->input('size', 10));
 
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_VOD_VIDEO,
+            AdministratorLog::OPT_VIEW,
+            []
+        );
+
         return $this->successData(compact('videos'));
     }
 
@@ -66,7 +74,22 @@ class CourseVideoController extends BaseController
 
     public function store(CourseVideoRequest $request, Video $video)
     {
-        $video->fill($request->filldata())->save();
+        $data = $request->filldata();
+
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_VOD_VIDEO,
+            AdministratorLog::OPT_STORE,
+            Arr::only($data, [
+                'course_id', 'title', 'slug',
+                'url', 'view_num', 'short_description', 'original_desc', 'render_desc',
+                'seo_keywords', 'seo_description', 'published_at',
+                'is_show', 'charge', 'aliyun_video_id',
+                'chapter_id', 'duration', 'tencent_video_id',
+                'is_ban_sell', 'free_seconds', 'ban_drag',
+            ])
+        );
+
+        $video->fill($data)->save();
 
         event(new VodVideoCreatedEvent($video['id'], $video['title'], $video['charge'], '', '', ''));
 
@@ -82,14 +105,42 @@ class CourseVideoController extends BaseController
             ->orderByDesc('id')
             ->get();
 
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_VOD_VIDEO,
+            AdministratorLog::OPT_VIEW,
+            []
+        );
+
         return $this->successData(compact('video', 'courses'));
     }
 
     public function update(CourseVideoRequest $request, $id)
     {
+        $data = $request->filldata();
         $video = Video::query()->where('id', $id)->firstOrFail();
 
-        $video->fill($request->filldata())->save();
+        AdministratorLog::storeLogDiff(
+            AdministratorLog::MODULE_VOD_VIDEO,
+            AdministratorLog::OPT_UPDATE,
+            Arr::only($data, [
+                'course_id', 'title', 'slug',
+                'url', 'view_num', 'short_description', 'original_desc', 'render_desc',
+                'seo_keywords', 'seo_description', 'published_at',
+                'is_show', 'charge', 'aliyun_video_id',
+                'chapter_id', 'duration', 'tencent_video_id',
+                'is_ban_sell', 'free_seconds', 'ban_drag',
+            ]),
+            Arr::only($video->toArray(), [
+                'course_id', 'title', 'slug',
+                'url', 'view_num', 'short_description', 'original_desc', 'render_desc',
+                'seo_keywords', 'seo_description', 'published_at',
+                'is_show', 'charge', 'aliyun_video_id',
+                'chapter_id', 'duration', 'tencent_video_id',
+                'is_ban_sell', 'free_seconds', 'ban_drag',
+            ]),
+        );
+
+        $video->fill($data)->save();
 
         event(new VodVideoCreatedEvent($video['id'], $video['title'], $video['charge'], '', '', ''));
 
@@ -101,24 +152,20 @@ class CourseVideoController extends BaseController
         $video = Video::query()->where('id', $id)->firstOrFail();
 
         DB::transaction(function () use ($video) {
-            // 清空用户的观看记录
-            UserVideoWatchRecord::query()->where('video_id', $video['id'])->delete();
-
             $videoId = $video['id'];
 
             $video->delete();
 
             event(new VodVideoDestroyedEvent($videoId));
+
+            AdministratorLog::storeLog(
+                AdministratorLog::MODULE_VOD_VIDEO,
+                AdministratorLog::OPT_DESTROY,
+                []
+            );
         });
 
         return $this->success();
-    }
-
-    protected function hook($courseId)
-    {
-        $count = Video::query()->where('course_id', $courseId)->where('charge', '>', 0)->count();
-        $isFree = $count === 0;
-        Course::query()->where('id', $courseId)->update(['is_free' => $isFree]);
     }
 
     public function multiDestroy(Request $request)
@@ -126,23 +173,21 @@ class CourseVideoController extends BaseController
         $ids = $request->input('ids');
 
         DB::transaction(function () use ($ids) {
-            $videos = Video::query()
-                ->select([
-                    'id'
-                ])
-                ->whereIn('id', $ids)
-                ->get();
+            $videos = Video::query()->select(['id'])->whereIn('id', $ids)->get();
 
             foreach ($videos as $video) {
                 $videoId = $video['id'];
-
-                // 清空用户观看记录
-                UserVideoWatchRecord::query()->where('video_id', $videoId)->delete();
 
                 $video->delete();
 
                 event(new VodVideoDestroyedEvent($videoId));
             }
+
+            AdministratorLog::storeLog(
+                AdministratorLog::MODULE_VOD_VIDEO,
+                AdministratorLog::OPT_DESTROY,
+                compact('ids')
+            );
         });
 
         return $this->success();
@@ -171,6 +216,12 @@ class CourseVideoController extends BaseController
             ->get()
             ->keyBy('id');
 
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_VOD_VIDEO,
+            AdministratorLog::OPT_VIEW,
+            []
+        );
+
         return $this->successData([
             'data' => $data,
             'users' => $users,
@@ -187,6 +238,12 @@ class CourseVideoController extends BaseController
         if (!is_array($userId)) {
             $userId = [$userId];
         }
+
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_VOD_VIDEO,
+            AdministratorLog::OPT_STORE,
+            compact('userId')
+        );
 
         $existsIds = UserVideo::query()
             ->whereIn('user_id', $userId)
@@ -213,6 +270,11 @@ class CourseVideoController extends BaseController
     public function subscribeDelete(Request $request, $videoId)
     {
         $userId = $request->input('user_id');
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_VOD_VIDEO,
+            AdministratorLog::OPT_DESTROY,
+            compact('userId')
+        );
         UserVideo::query()->where('user_id', $userId)->where('video_id', $videoId)->delete();
         return $this->success();
     }
@@ -264,6 +326,12 @@ class CourseVideoController extends BaseController
             ->get()
             ->keyBy('id');
 
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_VOD_VIDEO,
+            AdministratorLog::OPT_VIEW,
+            []
+        );
+
         return $this->successData([
             'courses' => $courses,
             'data' => $data,
@@ -275,9 +343,16 @@ class CourseVideoController extends BaseController
     public function import(Request $request)
     {
         $data = $request->input('data');
+        $startLine = (int)$request->input('line', 2);
         if (!$data) {
             return $this->error(__('数据为空'));
         }
+
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_VOD_VIDEO,
+            AdministratorLog::OPT_STORE,
+            compact('data')
+        );
 
         $courseNameColumn = array_column($data, 0);
         $courseNameColumn = array_map('trim', $courseNameColumn);
@@ -288,16 +363,15 @@ class CourseVideoController extends BaseController
 
         foreach ($data as $index => $item) {
             // 行数[用户报错提示]
-            $line = $index + 2;
+            $line = $startLine + $index;
 
-            $courseName = trim($item[0] ?? '');
-            if ($courseName === '') {
-                continue;
+            if (!isset($item[0]) || !$item[0]) {
+                return $this->error(__('第 :line 行所属课程为空', ['line' => $line]));
             }
 
-            $courseId = $courses[$courseName] ?? 0;
+            $courseId = $courses[trim($item[0])] ?? 0;
             if (!$courseId) {
-                return $this->error(sprintf(__('第%d行课程不存在'), $line));
+                return $this->error(__('第 :line 行所属课程不存在', ['line' => $line]));
             }
 
             $chapterName = $item[1] ?? '';
@@ -312,7 +386,7 @@ class CourseVideoController extends BaseController
 
             $videoName = trim($item[2] ?? '');
             if (!$videoName) {
-                return $this->error(sprintf(__('第%d视频名为空'), $line));
+                return $this->error(__('第 :line 视频名为空', ['line' => $line]));
             }
 
             $duration = (int)($item[3] ?? 0);

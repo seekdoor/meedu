@@ -23,11 +23,9 @@ use App\Services\Member\Models\UserProfile;
 use App\Services\Base\Services\ConfigService;
 use App\Services\Member\Models\UserWatchStat;
 use App\Services\Member\Models\UserLikeCourse;
-use App\Services\Member\Models\UserLoginRecord;
 use App\Services\Member\Models\UserVideoWatchRecord;
 use App\Services\Base\Interfaces\ConfigServiceInterface;
 use App\Services\Member\Interfaces\UserServiceInterface;
-use App\Services\Member\Interfaces\UserInviteBalanceServiceInterface;
 
 class UserService implements UserServiceInterface
 {
@@ -216,13 +214,10 @@ class UserService implements UserServiceInterface
      */
     public function changeMobile(int $userId, string $mobile): void
     {
-        $exists = $this->findMobile($mobile);
-        if ($exists) {
+        if ($this->findMobile($mobile)) {
             throw new ServiceException(__('手机号已存在'));
         }
-        $user = User::findOrFail($userId);
-        $user->mobile = $mobile;
-        $user->save();
+        User::query()->where('id', $userId)->update(['mobile' => $mobile]);
     }
 
     /**
@@ -397,27 +392,6 @@ class UserService implements UserServiceInterface
     }
 
     /**
-     * @param int $id
-     * @param $userId
-     * @param int $reward
-     * @throws \Illuminate\Contracts\Container\BindingResolutionException
-     */
-    public function updateInviteUserId(int $id, $userId, $reward = 0): void
-    {
-        $inviteConfig = $this->configService->getMemberInviteConfig();
-        $expiredDays = $inviteConfig['effective_days'] ?? 0;
-        User::whereId($id)->update([
-            'invite_user_id' => $userId,
-            'invite_user_expired_at' => $expiredDays ? Carbon::now()->addDays($expiredDays) : null,
-        ]);
-        /**
-         * @var $userInviteBalanceService UserInviteBalanceService
-         */
-        $userInviteBalanceService = app()->make(UserInviteBalanceServiceInterface::class);
-        $userInviteBalanceService->createInvite($userId, $reward);
-    }
-
-    /**
      * @param int $userId
      * @return int
      */
@@ -535,11 +509,16 @@ class UserService implements UserServiceInterface
             ->where('video_id', $videoId)
             ->first();
 
+        $isEmitWatchedEvent = false;
+
         if ($record) {
             if ($record->watched_at === null && $record->watch_seconds <= $duration) {
                 // 如果有记录[没看完 && 当前时间超过已记录的时间]
                 $data = ['watch_seconds' => $duration];
-                $isWatched && $data['watched_at'] = Carbon::now();
+                if ($isWatched) {
+                    $data['watched_at'] = Carbon::now();
+                    $isEmitWatchedEvent = true;
+                }
                 $record->fill($data)->save();
             }
         } else {
@@ -550,10 +529,10 @@ class UserService implements UserServiceInterface
                 'watch_seconds' => $duration,
                 'watched_at' => $isWatched ? Carbon::now() : null,
             ]);
+            $isEmitWatchedEvent = $isWatched;
         }
 
-        // 视频看完event
-        $isWatched && event(new UserVideoWatchedEvent($userId, $videoId));
+        $isEmitWatchedEvent && event(new UserVideoWatchedEvent($userId, $videoId));
     }
 
     /**
@@ -578,14 +557,6 @@ class UserService implements UserServiceInterface
     {
         $record = UserVideoWatchRecord::query()->where('user_id', $userId)->where('course_id', $courseId)->orderByDesc('updated_at')->first();
         return $record ? $record->toArray() : [];
-    }
-
-    /**
-     * @param int $id
-     */
-    public function setUsedPromoCode(int $id): void
-    {
-        User::query()->where('id', $id)->update(['is_used_promo_code' => 1]);
     }
 
     /**
@@ -616,44 +587,6 @@ class UserService implements UserServiceInterface
         return User::query()
             ->where('role_expired_at', '<=', Carbon::now())
             ->update(['role_id' => 0, 'role_expired_at' => null]);
-    }
-
-    /**
-     * 用户登录记录
-     *
-     * @param int $userId
-     * @param string $platform
-     * @param string $ip
-     * @param string $at
-     */
-    public function createLoginRecord(int $userId, string $platform, string $ip, string $at): void
-    {
-        $record = UserLoginRecord::create([
-            'user_id' => $userId,
-            'ip' => $ip,
-            'area' => '',
-            'platform' => $platform,
-            'at' => $at,
-        ]);
-
-        User::query()->where('id', $userId)->update(['last_login_id' => $record->id]);
-    }
-
-    /**
-     * @param int $userId
-     * @param string $platform
-     * @return array
-     */
-    public function findUserLastLoginRecord(int $userId, string $platform): array
-    {
-        $record = UserLoginRecord::query()
-            ->where('user_id', $userId)
-            ->when($platform, function ($query) use ($platform) {
-                $query->where('platform', $platform);
-            })
-            ->orderByDesc('id')
-            ->first();
-        return $record ? $record->toArray() : [];
     }
 
     /**
@@ -741,6 +674,13 @@ class UserService implements UserServiceInterface
             ->sum('seconds');
     }
 
+    /**
+     * @param int $userId
+     * @param int $year
+     * @param int $month
+     * @param int $day
+     * @return int
+     */
     public function getUserWatchStatForDay(int $userId, int $year, int $month, int $day): int
     {
         return (int)UserWatchStat::query()
@@ -751,8 +691,20 @@ class UserService implements UserServiceInterface
             ->sum('seconds');
     }
 
+    /**
+     * @param int $userId
+     * @return int
+     */
     public function inviteCount(int $userId): int
     {
         return (int)User::query()->where('invite_user_id', $userId)->count();
+    }
+
+    /**
+     * @param int $videoId
+     */
+    public function clearVideoWatchRecords(int $videoId)
+    {
+        UserVideoWatchRecord::query()->where('video_id', $videoId)->delete();
     }
 }

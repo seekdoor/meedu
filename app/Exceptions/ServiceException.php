@@ -16,12 +16,6 @@ class ServiceException extends \Exception
 
     public function render()
     {
-        $message = $this->getMessage();
-        if (request()->wantsJson()) {
-            return $this->error($message);
-        }
-        flash($message);
-
-        return back();
+        return $this->error($this->getMessage());
     }
 }

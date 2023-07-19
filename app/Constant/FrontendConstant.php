@@ -14,6 +14,7 @@ class FrontendConstant
     const PAYMENT_SCENE_PC = 'pc';
     const PAYMENT_SCENE_H5 = 'h5';
     const PAYMENT_SCENE_WECHAT = 'wechat';
+    const PAYMENT_SCENE_HAND_PAY = 'handPay';
 
     // 支付渠道-方法
     const PAYMENT_SCENE_WECHAT_SCAN = 'scan';
@@ -22,12 +23,6 @@ class FrontendConstant
     // 订单已支付
     const ORDER_PAID = 9;
     const ORDER_UN_PAY = 1;
-
-    const INVITE_BALANCE_WITHDRAW_STATUS_SUCCESS = 1;
-    const INVITE_BALANCE_WITHDRAW_STATUS_FAILURE = 2;
-
-    // 登录跳转url存储key
-    const LOGIN_CALLBACK_URL_KEY = 'login_callback_url';
 
     // api会员认证driver
     const API_GUARD = 'apiv2';
@@ -45,8 +40,6 @@ class FrontendConstant
 
     // 不限制
     public const LOGIN_LIMIT_RULE_DEFAULT = 1;
-    // 每个平台允许登录一台设备已登录
-    public const LOGIN_LIMIT_RULE_PLATFORM = 2;
     // 所有平台只允许一台设备已登录
     public const LOGIN_LIMIT_RULE_ALL = 3;
 
@@ -77,4 +70,14 @@ class FrontendConstant
     public const LANG_EN = 'en';
 
     public const SOCIALITE_APP_QQ = 'qq';
+
+    // 点播服务
+    public const VOD_SERVICE_TENCENT = 'tencent';
+    public const VOD_SERVICE_ALIYUN = 'aliyun';
+
+    // 实名认证最佳帧图片存储路径
+    public const USER_VERIFY_FACE_IMAGE_SAVE_PATH = 'meedu/userFaceVerify/images';
+    // 实名认证视频存储路径
+    public const USER_VERIFY_FACE_VIDEO_SAVE_PATH = 'meedu/userFaceVerify/videos';
+    public const USER_VERIFY_FACE_ID_CARD_SAVE_PATH = '/meedu/userFaceVerify/idCard';
 }

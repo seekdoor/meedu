@@ -11,12 +11,10 @@ return [
         'app_id' => '',
         'secret_id' => '',
         'secret_key' => '',
-        'transcode_format' => '',
     ],
-    'wechat' => [
-        'mini' => [
-            'app_id' => env('WECHAT_MINI_APP_ID', ''),
-            'secret' => env('WECHAT_MINI_APP_SECRET', ''),
-        ],
+    'face' => [
+        'rule_id' => '',
+        'secret_id' => '',
+        'secret_key' => '',
     ],
 ];

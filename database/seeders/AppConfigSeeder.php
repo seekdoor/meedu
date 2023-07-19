@@ -18,18 +18,9 @@ class AppConfigSeeder extends Seeder
             // 系统配置
             [
                 'group' => '系统',
-                'name' => '网站名',
-                'field_type' => 'text',
-                'sort' => 0,
-                'default_value' => 'MeEdu',
-                'key' => 'app.name',
-                'value' => '',
-            ],
-            [
-                'group' => '系统',
                 'name' => 'DEBUG',
                 'field_type' => 'switch',
-                'sort' => 0,
+                'sort' => 10,
                 'default_value' => 0,
                 'key' => 'app.debug',
                 'value' => 0,
@@ -37,9 +28,27 @@ class AppConfigSeeder extends Seeder
             ],
             [
                 'group' => '系统',
+                'name' => '网站名',
+                'field_type' => 'text',
+                'sort' => 20,
+                'default_value' => 'MeEdu',
+                'key' => 'app.name',
+                'value' => '',
+            ],
+            [
+                'group' => '系统',
+                'name' => '网站Logo',
+                'field_type' => 'image',
+                'sort' => 25,
+                'default_value' => asset('/images/logo.png'),
+                'key' => 'meedu.system.logo',
+                'value' => asset('/images/logo.png'),
+            ],
+            [
+                'group' => '系统',
                 'name' => 'API访问地址',
                 'field_type' => 'text',
-                'sort' => 1,
+                'sort' => 30,
                 'default_value' => '',
                 'key' => 'app.url',
                 'value' => '',
@@ -49,7 +58,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '系统',
                 'name' => 'PC访问地址',
                 'field_type' => 'text',
-                'sort' => 1,
+                'sort' => 40,
                 'default_value' => '',
                 'key' => 'meedu.system.pc_url',
                 'value' => '',
@@ -59,7 +68,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '系统',
                 'name' => 'H5访问地址',
                 'field_type' => 'text',
-                'sort' => 1,
+                'sort' => 50,
                 'default_value' => '',
                 'key' => 'meedu.system.h5_url',
                 'value' => '',
@@ -67,18 +76,9 @@ class AppConfigSeeder extends Seeder
             ],
             [
                 'group' => '系统',
-                'name' => '网站Logo',
-                'field_type' => 'image',
-                'sort' => 2,
-                'default_value' => asset('/images/logo.png'),
-                'key' => 'meedu.system.logo',
-                'value' => asset('/images/logo.png'),
-            ],
-            [
-                'group' => '系统',
                 'name' => 'ICP备案号',
                 'field_type' => 'text',
-                'sort' => 6,
+                'sort' => 70,
                 'default_value' => '',
                 'key' => 'meedu.system.icp',
                 'value' => '',
@@ -87,7 +87,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '系统',
                 'name' => 'ICP备案号点击链接',
                 'field_type' => 'text',
-                'sort' => 6,
+                'sort' => 80,
                 'default_value' => '',
                 'key' => 'meedu.system.icp_link',
                 'value' => '',
@@ -96,7 +96,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '系统',
                 'name' => '公安网备案号',
                 'field_type' => 'text',
-                'sort' => 6,
+                'sort' => 90,
                 'default_value' => '',
                 'key' => 'meedu.system.icp2',
                 'value' => '',
@@ -105,7 +105,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '系统',
                 'name' => '公安网备案号点击链接',
                 'field_type' => 'text',
-                'sort' => 6,
+                'sort' => 100,
                 'default_value' => '',
                 'key' => 'meedu.system.icp2_link',
                 'value' => '',
@@ -114,7 +114,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '系统',
                 'name' => '关于我们',
                 'field_type' => 'longtext',
-                'sort' => 8,
+                'sort' => 110,
                 'default_value' => '',
                 'key' => 'meedu.aboutus',
                 'value' => '',
@@ -133,16 +133,12 @@ class AppConfigSeeder extends Seeder
                         'key' => \App\Constant\FrontendConstant::LOGIN_LIMIT_RULE_DEFAULT,
                     ],
                     [
-                        'title' => '单平台限制',
-                        'key' => \App\Constant\FrontendConstant::LOGIN_LIMIT_RULE_PLATFORM,
-                    ],
-                    [
-                        'title' => '全平台限制',
+                        'title' => '仅允许一台设备在线',
                         'key' => \App\Constant\FrontendConstant::LOGIN_LIMIT_RULE_ALL,
                     ],
                 ]),
                 'value' => \App\Constant\FrontendConstant::LOGIN_LIMIT_RULE_DEFAULT,
-                'help' => '单平台限制=每一个平台仅允许一台设备登录.全平台限制=所有平台仅允许一台设备登录',
+                'help' => '',
             ],
 
             // QQ登录
@@ -547,7 +543,6 @@ class AppConfigSeeder extends Seeder
                 'name' => '腾讯云COS AppId',
                 'field_type' => 'text',
                 'sort' => 16,
-                'default_value' => '',
                 'key' => 'filesystems.disks.cos.credentials.appId',
                 'value' => '',
             ],
@@ -556,7 +551,6 @@ class AppConfigSeeder extends Seeder
                 'name' => '腾讯云COS SecretId',
                 'field_type' => 'text',
                 'sort' => 17,
-                'default_value' => '',
                 'key' => 'filesystems.disks.cos.credentials.secretId',
                 'value' => '',
             ],
@@ -565,7 +559,6 @@ class AppConfigSeeder extends Seeder
                 'name' => '腾讯云COS SecretKey',
                 'field_type' => 'text',
                 'sort' => 18,
-                'default_value' => '',
                 'key' => 'filesystems.disks.cos.credentials.secretKey',
                 'value' => '',
                 'is_private' => 1,
@@ -575,7 +568,6 @@ class AppConfigSeeder extends Seeder
                 'name' => '腾讯云COS Bucket',
                 'field_type' => 'text',
                 'sort' => 19,
-                'default_value' => '',
                 'key' => 'filesystems.disks.cos.bucket',
                 'value' => '',
             ],
@@ -584,7 +576,6 @@ class AppConfigSeeder extends Seeder
                 'name' => '腾讯云COS CDN域名',
                 'field_type' => 'text',
                 'sort' => 20,
-                'default_value' => '',
                 'key' => 'filesystems.disks.cos.cdn',
                 'value' => '',
             ],
@@ -594,8 +585,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '支付',
                 'name' => '支付宝支付',
                 'field_type' => 'switch',
-                'sort' => 0,
-                'default_value' => 0,
+                'sort' => 10,
                 'key' => 'meedu.payment.alipay.enabled',
                 'value' => 0,
             ],
@@ -603,8 +593,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '支付',
                 'name' => '支付宝AppId',
                 'field_type' => 'text',
-                'sort' => 1,
-                'default_value' => '',
+                'sort' => 20,
                 'key' => 'pay.alipay.app_id',
                 'value' => '',
             ],
@@ -612,8 +601,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '支付',
                 'name' => '支付宝公钥',
                 'field_type' => 'text',
-                'sort' => 2,
-                'default_value' => '',
+                'sort' => 30,
                 'key' => 'pay.alipay.ali_public_key',
                 'value' => '',
                 'is_private' => 1,
@@ -623,8 +611,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '支付',
                 'name' => '支付宝私钥',
                 'field_type' => 'text',
-                'sort' => 3,
-                'default_value' => '',
+                'sort' => 40,
                 'key' => 'pay.alipay.private_key',
                 'value' => '',
                 'is_private' => 1,
@@ -634,37 +621,35 @@ class AppConfigSeeder extends Seeder
             // 微信支付
             [
                 'group' => '支付',
-                'name' => '微信支付',
+                'name' => '微信扫码支付',
                 'field_type' => 'switch',
-                'sort' => 7,
-                'default_value' => 0,
+                'sort' => 100,
                 'key' => 'meedu.payment.wechat.enabled',
                 'value' => 0,
+                'help' => 'PC端口使用',
+            ],
+            [
+                'group' => '支付',
+                'name' => '微信支付',
+                'field_type' => 'switch',
+                'sort' => 110,
+                'key' => 'meedu.payment.wechat-jsapi.enabled',
+                'value' => 0,
+                'help' => '微信内支付使用',
             ],
             [
                 'group' => '支付',
                 'name' => '微信支付公众号AppId',
                 'field_type' => 'text',
-                'sort' => 8,
-                'default_value' => '',
+                'sort' => 120,
                 'key' => 'pay.wechat.app_id',
-                'value' => '',
-            ],
-            [
-                'group' => '支付',
-                'name' => '微信支付小程序AppId',
-                'field_type' => 'text',
-                'sort' => 9,
-                'default_value' => '',
-                'key' => 'pay.wechat.miniapp_id',
                 'value' => '',
             ],
             [
                 'group' => '支付',
                 'name' => '微信支付MchId',
                 'field_type' => 'text',
-                'sort' => 10,
-                'default_value' => '',
+                'sort' => 130,
                 'key' => 'pay.wechat.mch_id',
                 'value' => '',
             ],
@@ -672,9 +657,26 @@ class AppConfigSeeder extends Seeder
                 'group' => '支付',
                 'name' => '微信支付Key',
                 'field_type' => 'text',
-                'sort' => 11,
-                'default_value' => '',
+                'sort' => 140,
                 'key' => 'pay.wechat.key',
+                'value' => '',
+                'is_private' => 1,
+            ],
+            [
+                'group' => '支付',
+                'name' => '微信支付API证书-cert',
+                'field_type' => 'text',
+                'sort' => 150,
+                'key' => 'pay.wechat.cert_client',
+                'value' => '',
+                'is_private' => 1,
+            ],
+            [
+                'group' => '支付',
+                'name' => '微信支付API证书-key',
+                'field_type' => 'text',
+                'sort' => 160,
+                'key' => 'pay.wechat.cert_key',
                 'value' => '',
                 'is_private' => 1,
             ],
@@ -684,8 +686,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '支付',
                 'name' => '手动打款',
                 'field_type' => 'switch',
-                'sort' => 13,
-                'default_value' => 0,
+                'sort' => 300,
                 'key' => 'meedu.payment.handPay.enabled',
                 'value' => 0,
             ],
@@ -693,34 +694,36 @@ class AppConfigSeeder extends Seeder
                 'group' => '支付',
                 'name' => '手动打款说明',
                 'field_type' => 'longtext',
-                'sort' => 14,
-                'default_value' => '',
+                'sort' => 310,
                 'key' => 'meedu.payment.handPay.introduction',
+                'value' => '',
+            ],
+
+            [
+                'group' => '视频',
+                'name' => '视频存储默认服务',
+                'field_type' => 'select',
+                'sort' => 1,
+                'key' => 'meedu.upload.video.default_service',
+                'option_value' => json_encode([
+                    [
+                        'title' => '阿里云',
+                        'key' => 'aliyun',
+                    ],
+                    [
+                        'title' => '腾讯云',
+                        'key' => 'tencent',
+                    ],
+                ]),
                 'value' => '',
             ],
 
             // 阿里云视频配置
             [
                 'group' => '视频',
-                'name' => '阿里云视频Region',
-                'field_type' => 'text',
-                'sort' => 0,
-                'key' => 'meedu.upload.video.aliyun.region',
-                'value' => '',
-            ],
-            [
-                'group' => '视频',
-                'name' => '阿里云视频Host',
-                'field_type' => 'text',
-                'sort' => 0,
-                'key' => 'meedu.upload.video.aliyun.host',
-                'value' => '',
-            ],
-            [
-                'group' => '视频',
                 'name' => '阿里云视频AccessKeyId',
                 'field_type' => 'text',
-                'sort' => 1,
+                'sort' => 10,
                 'key' => 'meedu.upload.video.aliyun.access_key_id',
                 'value' => '',
             ],
@@ -728,10 +731,26 @@ class AppConfigSeeder extends Seeder
                 'group' => '视频',
                 'name' => '阿里云视频AccessKeySecret',
                 'field_type' => 'text',
-                'sort' => 2,
+                'sort' => 20,
                 'key' => 'meedu.upload.video.aliyun.access_key_secret',
                 'value' => '',
                 'is_private' => 1,
+            ],
+            [
+                'group' => '视频',
+                'name' => '阿里云视频Region',
+                'field_type' => 'text',
+                'sort' => 30,
+                'key' => 'meedu.upload.video.aliyun.region',
+                'value' => '',
+            ],
+            [
+                'group' => '视频',
+                'name' => '阿里云视频Host',
+                'field_type' => 'text',
+                'sort' => 40,
+                'key' => 'meedu.upload.video.aliyun.host',
+                'value' => '',
             ],
 
             // 腾讯云视频
@@ -739,7 +758,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '视频',
                 'name' => '腾讯云视频AppId',
                 'field_type' => 'text',
-                'sort' => 3,
+                'sort' => 100,
                 'default_value' => '',
                 'key' => 'tencent.vod.app_id',
                 'value' => '',
@@ -748,7 +767,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '视频',
                 'name' => '腾讯云视频SecretId',
                 'field_type' => 'text',
-                'sort' => 4,
+                'sort' => 110,
                 'default_value' => '',
                 'key' => 'tencent.vod.secret_id',
                 'value' => '',
@@ -757,7 +776,7 @@ class AppConfigSeeder extends Seeder
                 'group' => '视频',
                 'name' => '腾讯云视频SecretKey',
                 'field_type' => 'text',
-                'sort' => 5,
+                'sort' => 120,
                 'default_value' => '',
                 'key' => 'tencent.vod.secret_key',
                 'value' => '',
@@ -767,26 +786,17 @@ class AppConfigSeeder extends Seeder
                 'group' => '视频',
                 'name' => '腾讯云播放key',
                 'field_type' => 'text',
-                'sort' => 6,
+                'sort' => 130,
                 'default_value' => '',
                 'key' => 'meedu.system.player.tencent_play_key',
                 'value' => '',
                 'is_private' => 1,
             ],
-            [
-                'group' => '视频',
-                'name' => '腾讯云播放格式',
-                'field_type' => 'text',
-                'sort' => 10,
-                'key' => 'tencent.vod.transcode_format',
-                'value' => '',
-                'help' => '默认支持所有格式，如果配置mp4则只支持mp4，多个请用英文逗号连接',
-            ],
 
             // 会员配置
             [
                 'group' => '会员',
-                'name' => '手机号强制绑定',
+                'name' => '强制绑定手机号',
                 'field_type' => 'switch',
                 'sort' => 0,
                 'default_value' => 0,
@@ -795,7 +805,16 @@ class AppConfigSeeder extends Seeder
             ],
             [
                 'group' => '会员',
-                'name' => '会员注册默认锁定',
+                'name' => '强制实名认证',
+                'field_type' => 'switch',
+                'sort' => 0,
+                'default_value' => 0,
+                'key' => 'meedu.member.enabled_face_verify',
+                'value' => 0,
+            ],
+            [
+                'group' => '会员',
+                'name' => '新学员注册默认冻结',
                 'field_type' => 'switch',
                 'sort' => 2,
                 'default_value' => 0,
@@ -830,54 +849,6 @@ class AppConfigSeeder extends Seeder
                 'value' => '',
             ],
 
-            // 邀请
-            [
-                'group' => '邀请',
-                'name' => '免费会员是否可以生成邀请码',
-                'field_type' => 'switch',
-                'sort' => 0,
-                'default_value' => 0,
-                'key' => 'meedu.member.invite.free_user_enabled',
-                'value' => 0,
-            ],
-            [
-                'group' => '邀请',
-                'name' => '邀请人奖励(元)',
-                'field_type' => 'number',
-                'sort' => 1,
-                'default_value' => 0,
-                'key' => 'meedu.member.invite.invite_user_reward',
-                'value' => 0,
-            ],
-            [
-                'group' => '邀请',
-                'name' => '被邀请人奖励(元)',
-                'field_type' => 'number',
-                'sort' => 2,
-                'default_value' => 0,
-                'key' => 'meedu.member.invite.invited_user_reward',
-                'value' => 0,
-            ],
-            [
-                'group' => '邀请',
-                'name' => '邀请关系维系时间(天)',
-                'field_type' => 'number',
-                'sort' => 3,
-                'default_value' => 0,
-                'key' => 'meedu.member.invite.effective_days',
-                'value' => 0,
-            ],
-            [
-                'group' => '邀请',
-                'name' => '订单抽成',
-                'field_type' => 'text',
-                'sort' => 4,
-                'default_value' => 0,
-                'key' => 'meedu.member.invite.per_order_draw',
-                'value' => 0,
-                'help' => '1=100% 0.5=50%'
-            ],
-
             // 积分
             [
                 'group' => '积分',
@@ -886,15 +857,6 @@ class AppConfigSeeder extends Seeder
                 'sort' => 0,
                 'default_value' => 0,
                 'key' => 'meedu.member.credit1.register',
-                'value' => 0,
-            ],
-            [
-                'group' => '积分',
-                'name' => '邀请奖励',
-                'field_type' => 'number',
-                'sort' => 1,
-                'default_value' => 0,
-                'key' => 'meedu.member.credit1.invite',
                 'value' => 0,
             ],
             [
@@ -924,27 +886,6 @@ class AppConfigSeeder extends Seeder
                 'key' => 'meedu.member.credit1.paid_order',
                 'value' => 0,
                 'help' => '注意，支付订单的积分奖励与上面不同，它是根据订单金额*百分比奖励的，所以这里应该填写百分比。举个例子：订单支付金额100元，这里填写0.1，则用户奖励10积分。',
-            ],
-
-            // 微信小程序
-            [
-                'group' => '微信小程序',
-                'name' => 'AppId',
-                'field_type' => 'text',
-                'sort' => 0,
-                'default_value' => '',
-                'key' => 'tencent.wechat.mini.app_id',
-                'value' => '',
-            ],
-            [
-                'group' => '微信小程序',
-                'name' => 'AppSecret',
-                'field_type' => 'text',
-                'sort' => 1,
-                'default_value' => '',
-                'key' => 'tencent.wechat.mini.secret',
-                'value' => '',
-                'is_private' => 1,
             ],
 
             // 插件配置
@@ -995,6 +936,48 @@ class AppConfigSeeder extends Seeder
                 'default_value' => 0,
                 'key' => 'meedu.system.player.enabled_bullet_secret',
                 'value' => 0,
+            ],
+            [
+                'group' => '播放器配置',
+                'name' => '跑马灯-内容',
+                'field_type' => 'text',
+                'sort' => 10,
+                'key' => 'meedu.system.player.bullet_secret.text',
+                'value' => '',
+                'help' => '已支持变量：${mobile}=手机号，${nickname}=用户昵称，${id}=用户ID。不填写则默认为用户手机号。',
+            ],
+            [
+                'group' => '播放器配置',
+                'name' => '跑马灯-文字大小',
+                'field_type' => 'number',
+                'sort' => 20,
+                'key' => 'meedu.system.player.bullet_secret.size',
+                'value' => 14,
+            ],
+            [
+                'group' => '播放器配置',
+                'name' => '跑马灯-文字颜色',
+                'field_type' => 'text',
+                'sort' => 30,
+                'key' => 'meedu.system.player.bullet_secret.color',
+                'value' => '',
+            ],
+            [
+                'group' => '播放器配置',
+                'name' => '跑马灯-文字透明度',
+                'field_type' => 'text',
+                'sort' => 40,
+                'key' => 'meedu.system.player.bullet_secret.opacity',
+                'value' => 1,
+            ],
+            [
+                'group' => '播放器配置',
+                'name' => '播放视频格式白名单',
+                'field_type' => 'text',
+                'sort' => 100,
+                'key' => 'meedu.system.player.video_format_whitelist',
+                'value' => '',
+                'help' => '设置视频格式后缀，多个请用英文逗号连接',
             ],
 
             // 微信公众号
@@ -1131,7 +1114,7 @@ class AppConfigSeeder extends Seeder
             // 全文搜索配置
             [
                 'group' => '全文搜索',
-                'name' => 'MeiLiSearch Host',
+                'name' => 'MeiliSearch Host',
                 'field_type' => 'text',
                 'sort' => 1,
                 'key' => 'scout.meilisearch.host',
@@ -1139,12 +1122,39 @@ class AppConfigSeeder extends Seeder
             ],
             [
                 'group' => '全文搜索',
-                'name' => 'MeiLiSearch Key',
+                'name' => 'MeiliSearch Key',
                 'field_type' => 'text',
                 'sort' => 5,
                 'key' => 'scout.meilisearch.key',
                 'value' => '',
                 'is_private' => true,
+            ],
+
+            // 微信实名认证
+            [
+                'group' => '微信实名认证',
+                'name' => 'SecretId',
+                'field_type' => 'text',
+                'sort' => 10,
+                'key' => 'tencent.face.secret_id',
+                'value' => '',
+            ],
+            [
+                'group' => '微信实名认证',
+                'name' => 'SecretKey',
+                'field_type' => 'text',
+                'sort' => 20,
+                'key' => 'tencent.face.secret_key',
+                'value' => '',
+                'is_private' => true,
+            ],
+            [
+                'group' => '微信实名认证',
+                'name' => 'RuleID',
+                'field_type' => 'text',
+                'sort' => 30,
+                'key' => 'tencent.face.rule_id',
+                'value' => '',
             ],
         ];
 
@@ -1154,12 +1164,28 @@ class AppConfigSeeder extends Seeder
         }
 
         foreach ($config as $item) {
-            if (\App\Services\Base\Model\AppConfig::query()->where('key', $item['key'])->exists()) {
-                continue;
+            $configItem = \App\Services\Base\Model\AppConfig::query()->where('key', $item['key'])->first();
+            if ($configItem) {
+                if (
+                    $item['group'] !== $configItem['group'] ||
+                    $item['name'] !== $configItem['name'] ||
+                    $item['field_type'] !== $configItem['field_type'] ||
+                    $item['sort'] !== $configItem['sort'] ||
+                    (isset($item['option_value']) && $item['option_value'] !== $configItem['option_value'])
+                ) {//产生了变化->提交修改
+                    $configItem->fill([
+                        'group' => $item['group'],
+                        'name' => $item['name'],
+                        'field_type' => $item['field_type'],
+                        'sort' => $item['sort'],
+                        'option_value' => $item['option_value'] ?? null,
+                    ])->save();
+                }
+            } else {
+                $val = \Illuminate\Support\Arr::get($localConfig, $item['key']);
+                $item['value'] = $val ?: ($item['value'] ?? '');
+                \App\Services\Base\Model\AppConfig::create($item);
             }
-            $val = \Illuminate\Support\Arr::get($localConfig, $item['key']);
-            $item['value'] = $val ?: ($item['value'] ?? '');
-            \App\Services\Base\Model\AppConfig::create($item);
         }
     }
 }

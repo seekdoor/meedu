@@ -10,6 +10,8 @@ namespace App\Http\Controllers\Backend\Api\V1;
 
 use Carbon\Carbon;
 use App\Meedu\MeEdu;
+use Illuminate\Http\Request;
+use App\Models\AdministratorLog;
 use App\Services\Member\Models\User;
 use App\Services\Order\Models\Order;
 
@@ -36,18 +38,16 @@ class DashboardController extends BaseController
 
         // 进入付费用户数量
         $todayPaidUserNum = Order::query()
-            ->select(['user_id'])
+            ->distinct('user_id')
             ->where('created_at', '>=', date('Y-m-d'))
             ->where('status', Order::STATUS_PAID)
-            ->groupBy('user_id')
             ->count();
 
         // 昨日付费用户数量
         $yesterdayPaidUserNum = Order::query()
-            ->select(['user_id'])
+            ->distinct('user_id')
             ->whereBetween('created_at', [Carbon::now()->subDays(1)->format('Y-m-d'), date('Y-m-d')])
             ->where('status', Order::STATUS_PAID)
-            ->groupBy('user_id')
             ->count();
 
         // 本月收益
@@ -60,6 +60,12 @@ class DashboardController extends BaseController
             ->whereBetween('created_at', [Carbon::now()->subMonths(1)->format('Y-m') . '-01', date('Y-m') . '-01'])
             ->where('status', Order::STATUS_PAID)
             ->sum('charge');
+
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_ADMIN_DASHBOARD,
+            AdministratorLog::OPT_VIEW,
+            []
+        );
 
         return $this->successData([
             'today_register_user_count' => $todayRegisterUserCount,
@@ -87,6 +93,13 @@ class DashboardController extends BaseController
         if (file_exists(base_path('public/install.php'))) {
             return $this->error(__('请删除傻瓜安装脚本public/install.php文件'));
         }
+
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_ADMIN_DASHBOARD,
+            AdministratorLog::OPT_VIEW,
+            []
+        );
+
         return $this->success();
     }
 
@@ -97,6 +110,91 @@ class DashboardController extends BaseController
             'php_version' => phpversion(),
             'laravel_version' => app()->version(),
         ];
+
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_ADMIN_DASHBOARD,
+            AdministratorLog::OPT_VIEW,
+            []
+        );
+
         return $this->successData($info);
+    }
+
+    public function graph(Request $request)
+    {
+        $startAt = $request->input('start_at');
+        $endAt = $request->input('end_at');
+        if (!$startAt || !$endAt) {
+            return $this->error(__('参数错误'));
+        }
+
+        AdministratorLog::storeLog(
+            AdministratorLog::MODULE_ADMIN_DASHBOARD,
+            AdministratorLog::OPT_VIEW,
+            []
+        );
+
+        $startAt = Carbon::parse($startAt)->format('Y-m-d');
+
+        $endAt = Carbon::parse($endAt)->format('Y-m-d') . ' 23:59:59';
+        $endAtCarbon = Carbon::parse($endAt);
+
+        // 每日注册学员数量统计
+        $userRegister = [];
+        // 每日订单创建数量统计
+        $orderCreated = [];
+        // 每日已支付订单数量统计
+        $orderPaid = [];
+        // 每日支付总额统计
+        $orderSum = [];
+
+        $tmpAt = Carbon::parse($startAt);
+
+        while ($endAtCarbon->gt($tmpAt)) {
+            $tmpKey = $tmpAt->format('Y-m-d');
+
+            $userRegister[$tmpKey] = 0;
+            $orderCreated[$tmpKey] = 0;
+            $orderPaid[$tmpKey] = 0;
+            $orderSum[$tmpKey] = 0;
+
+            $tmpAt->addDays();
+        }
+
+        $users = User::query()
+            ->select(['created_at'])
+            ->whereBetween('created_at', [$startAt, $endAt])
+            ->get();
+        foreach ($users as $tmpVal) {
+            $tmpDate = Carbon::parse($tmpVal['created_at'])->format('Y-m-d');
+            $userRegister[$tmpDate]++;
+        }
+
+        $createdOrders = Order::query()
+            ->select(['created_at'])
+            ->whereBetween('created_at', [$startAt, $endAt])
+            ->get();
+        foreach ($createdOrders as $tmpVal) {
+            $tmpDate = Carbon::parse($tmpVal['created_at'])->format('Y-m-d');
+            $orderCreated[$tmpDate]++;
+        }
+
+        $paidOrders = Order::query()
+            ->select(['created_at', 'charge'])
+            ->where('status', Order::STATUS_PAID)
+            ->whereBetween('created_at', [$startAt, $endAt])
+            ->get();
+        foreach ($paidOrders as $tmpVal) {
+            $tmpDate = Carbon::parse($tmpVal['created_at'])->format('Y-m-d');
+            $orderPaid[$tmpDate]++;
+            $orderSum[$tmpDate] += $tmpVal['charge'];
+        }
+
+        return $this->successData([
+            'user_register' => $userRegister,
+            'order_created' => $orderCreated,
+            'order_paid' => $orderPaid,
+            'order_sum' => $orderSum,
+        ]);
     }
 }

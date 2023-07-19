@@ -13,16 +13,19 @@ return [
 
     // 会员配置
     'member' => [
-        'is_active_default' => 1,
-        'is_lock_default' => 0,
+        'is_active_default' => 1,//注册学员默认激活[1:是,0:否]
+        'is_lock_default' => 0,//注册学员默认锁定[1:是,0:否]
 
         // 用户协议
         'protocol' => '',
         // 隐私协议
         'private_protocol' => '',
 
-        // 是否提醒绑定手机号
+        // 强制用户绑定手机号[1:是,0:否]
         'enabled_mobile_bind_alert' => 0,
+
+        // 强制用户实名认证
+        'enabled_face_verify' => 0,
 
         // 头像
         'default_avatar' => '/images/default_avatar.jpg',
@@ -88,6 +91,7 @@ return [
             'params' => '',
         ],
         'video' => [
+            'default_service' => '',
             'aliyun' => [
                 'region' => 'cn-shanghai',
                 'host' => '',
@@ -123,15 +127,15 @@ return [
         'wechat' => [
             'enabled' => 0,
             'handler' => \App\Meedu\Payment\Wechat\WechatScan::class,
-            'name' => '微信支付',
+            'name' => '微信扫码支付',
             'logo' => '/images/icons/wechat-pay.png',
             'sign' => 'wechat',
             'default_method' => 'scan',
             'pc' => 'scan',
         ],
         'wechat-jsapi' => [
-            'enabled' => 1,
-            'name' => '微信支付',
+            'enabled' => 0,
+            'name' => '微信JSAPI支付',
             'logo' => '/images/icons/wechat-pay.png',
             'sign' => 'wechat-jsapi',
             'handler' => \App\Meedu\Payment\Wechat\WechatJSAPI::class,
@@ -147,25 +151,6 @@ return [
             'pc' => 'hand',
             'h5' => 'hand',
             'wechat' => 'hand',
-        ],
-    ],
-
-    // SEO
-    'seo' => [
-        'index' => [
-            'title' => '首页',
-            'keywords' => '',
-            'description' => '',
-        ],
-        'course_list' => [
-            'title' => '所有课程',
-            'keywords' => '',
-            'description' => '',
-        ],
-        'role_list' => [
-            'title' => 'VIP',
-            'keywords' => '',
-            'description' => '',
         ],
     ],
 
@@ -192,10 +177,16 @@ return [
         'player' => [
             // 跑马灯
             'enabled_bullet_secret' => 0,
+            'bullet_secret' => [
+                'text' => '', //默认为当前用户手机号
+                'size' => 0, //默认14px
+                'color' => '', //默认red
+                'opacity' => 1, //默认1
+            ],
             // 腾讯云播放key
             'tencent_play_key' => '',
-            // 腾讯云超级播放器配置
-            'tencent_pcfg' => 'default',
+            // 播放格式
+            'video_format_whitelist' => '',
         ],
 
         // 缓存开关
@@ -224,6 +215,9 @@ return [
 
         // 多语言
         'lang' => \App\Constant\FrontendConstant::LANG_ZH,
+
+        // 关闭deprecated的API访问
+        'close_deprecated_api' => env('CLOSE_DEPRECATED_API', false),
     ],
 
     // MeEduCloud

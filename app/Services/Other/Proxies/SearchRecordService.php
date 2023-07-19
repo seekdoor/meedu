@@ -45,22 +45,13 @@ class SearchRecordService implements SearchRecordServiceInterface
 
     public function search(string $keywords, int $page = 1, int $size = 10, $type = '')
     {
-        if (!$type) {
-            $data = SearchRecord::search($keywords)->paginate($size);
-            return [
-                'data' => $data->items(),
-                'total' => $data->total(),
-            ];
-        }
+        $results = SearchRecord::search($keywords)->take($type ? 300 : 100)->get();
 
-        $results = SearchRecord::search($keywords)->get();
-
-        if ($type) {
+        $data = $results->toArray();
+        if ($type) {//如果存在type过滤[meilisearch-v0.21.0暂不支持增加type的过滤,这里需要先读取出数据然后手动过滤]
             $data = $results->filter(function ($item) use ($type) {
                 return $item['resource_type'] === $type;
             })->toArray();
-        } else {
-            $data = $results->toArray();
         }
 
         $total = count($data);

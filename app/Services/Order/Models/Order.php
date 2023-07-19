@@ -8,6 +8,7 @@
 
 namespace App\Services\Order\Models;
 
+use App\Constant\TableConstant;
 use Illuminate\Database\Eloquent\Model;
 use App\Services\Base\Services\ConfigService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,11 +29,11 @@ class Order extends Model
         self::STATUS_CANCELED => '已取消',
     ];
 
-    protected $table = 'orders';
+    protected $table = TableConstant::TABLE_ORDERS;
 
     protected $fillable = [
         'user_id', 'charge', 'status', 'order_id', 'payment',
-        'payment_method',
+        'payment_method', 'is_refund', 'last_refund_at',
     ];
 
     protected $appends = [
@@ -54,30 +55,16 @@ class Order extends Model
         return in_array($this->status, [self::STATUS_UNPAY, self::STATUS_PAYING]);
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function goods()
     {
         return $this->hasMany(OrderGoods::class, 'oid');
     }
 
-    /**
-     * 订单状态文本.
-     *
-     * @return string
-     */
     public function statusText(): string
     {
         return self::STATUS_TEXT[$this->status] ?? '';
     }
 
-    /**
-     * @param $query
-     * @param $status
-     *
-     * @return mixed
-     */
     public function scopeStatus($query, $status)
     {
         if (!$status) {
@@ -87,30 +74,6 @@ class Order extends Model
         return $query->where('status', $status);
     }
 
-    /**
-     * 获取今日已支付订单数量.
-     *
-     * @return mixed
-     */
-    public static function todayPaidNum()
-    {
-        return self::where('created_at', '>=', date('Y-m-d'))->status(self::STATUS_PAID)->count();
-    }
-
-    /**
-     * 获取今日已支付总金额.
-     *
-     * @return mixed
-     */
-    public static function todayPaidSum()
-    {
-        return self::where('created_at', '>=', date('Y-m-d'))->status(self::STATUS_PAID)->sum('charge');
-    }
-
-    /**
-     * @return string
-     * @throws \Illuminate\Contracts\Container\BindingResolutionException
-     */
     public function getPaymentText()
     {
         /**
@@ -122,11 +85,13 @@ class Order extends Model
         return $payments[$this->payment]['name'] ?? '';
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function paidRecords()
     {
         return $this->hasMany(OrderPaidRecord::class, 'order_id');
+    }
+
+    public function refund()
+    {
+        return $this->hasMany(OrderRefund::class, 'order_id');
     }
 }
